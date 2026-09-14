@@ -688,6 +688,60 @@
             70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(224, 122, 95, 0); }
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(224, 122, 95, 0); }
         }
+
+        /* 手機版：壓縮垂直空間，讓主要資訊盡量落在一個畫面內 */
+        @media (max-width: 430px) {
+            body { padding: 10px; align-items: flex-start; }
+            .app-container { border-radius: 22px; }
+
+            header { padding: 14px 16px 4px; }
+            .logo-area h1 { font-size: 1.65rem; }
+            .header-actions { gap: 8px; }
+            .streak-badge { font-size: 1.15rem; }
+            .settings-mini-btn { width: 30px; height: 30px; }
+
+            .week-strip-wrap { padding: 0 10px 4px; }
+            .week-strip { gap: 2px; }
+            .week-day-item { gap: 2px; min-height: 54px; }
+            .week-day-label { font-size: 0.68rem; }
+            .week-date-circle { width: 36px; height: 36px; font-size: 0.92rem; }
+            .week-day-dot { width: 5px; height: 5px; }
+            .sync-note { min-height: 14px; padding: 0 16px 2px; font-size: 0.66rem; }
+
+            .dashboard { padding: 2px 14px 10px; }
+            .hero-card { padding: 14px 12px 14px; border-radius: 22px; }
+
+            .calorie-main-row {
+                grid-template-columns: 0.8fr 1.45fr;
+                column-gap: 4px;
+                min-height: 108px;
+                margin-bottom: 10px;
+            }
+            .stat-col .number { font-size: 1.45rem; }
+            .stat-col .label { font-size: 0.78rem; margin-top: 4px; }
+            .center-stat { height: 112px; }
+            .calorie-gauge { width: 142px; height: 82px; top: 0; }
+            .center-stat .number { font-size: 2.25rem; margin-top: 18px; }
+            .center-stat .label { font-size: 0.78rem; margin-top: 4px; }
+
+            .macros-container { gap: 10px; }
+            .macro-row { gap: 4px; }
+            .macro-name { font-size: 0.84rem; margin-bottom: 4px; }
+            .progress-bar-bg { height: 14px; }
+            .progress-bar-fill::before { width: 8px; height: 8px; left: 4px; }
+            .macro-value { margin-top: 3px; font-size: 0.72rem; }
+            .macro-value strong { font-size: 0.98rem; }
+
+            .meal-section { padding: 4px 14px 12px; }
+            .section-title { font-size: 0.86rem; margin-bottom: 8px; }
+            .section-title span { font-size: 0.68rem; padding: 3px 8px; }
+            .meal-grid { gap: 8px; }
+            .meal-card { padding: 10px 12px; border-radius: 14px; gap: 3px; }
+            .meal-icon { font-size: 1.1rem; }
+            .meal-name { font-size: 0.84rem; }
+            .meal-status { font-size: 0.68rem; }
+        }
+
     </style>
 </head>
 <body>
