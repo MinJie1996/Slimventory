@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slimventory</title>
+    <title>Slimventory - 減脂紀錄</title>
     <style>
         @import url("https://fonts.googleapis.com/css2?family=ADLaM+Display&display=swap");
         :root {
@@ -688,7 +688,7 @@
         <header>
             <div class="logo-area">
                 <h1>Slimventory</h1>
-                <p>MinJie</p>
+                <p>減脂加油</p>
             </div>
             <div class="header-actions">
                 <div class="streak-badge"><span class="flame">🔥</span><span id="streak-count">0</span></div>
@@ -1314,6 +1314,75 @@
             document.getElementById(`${type}-bar`).style.width = `${percentage}%`;
         }
 
+        function getCurrentProfile() {
+            return {
+                height: parseFloat(document.getElementById('set-height').value) || 0,
+                weight: parseFloat(document.getElementById('set-weight').value) || 0,
+                activity: document.getElementById('set-exercise').value,
+                targetCalories: Number(targetCalories) || 0,
+                proteinTarget: Number(targets.protein) || 0,
+                carbsTarget: Number(targets.carbs) || 0
+            };
+        }
+
+        function applyProfile(profile) {
+            if (!profile) return;
+            if (profile.height) document.getElementById('set-height').value = profile.height;
+            if (profile.weight) document.getElementById('set-weight').value = profile.weight;
+            if (profile.activity) document.getElementById('set-exercise').value = profile.activity;
+            if (profile.targetCalories) targetCalories = Number(profile.targetCalories);
+            if (profile.proteinTarget) targets.protein = Number(profile.proteinTarget);
+            if (profile.carbsTarget) targets.carbs = Number(profile.carbsTarget);
+        }
+
+        function saveProfileSettingsLocal(profile) {
+            localStorage.setItem('slimventory_profile', JSON.stringify(profile));
+        }
+
+        async function saveProfileSettingsToGoogle(profile) {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_')) {
+                return { ok: false, skipped: true };
+            }
+
+            return saveRecordToGoogleSheet({
+                action: 'saveProfile',
+                recordedAt: new Date().toISOString(),
+                height: profile.height,
+                weight: profile.weight,
+                activity: profile.activity,
+                targetCalories: profile.targetCalories,
+                proteinTarget: profile.proteinTarget,
+                carbsTarget: profile.carbsTarget
+            });
+        }
+
+        function loadProfileSettings() {
+            try {
+                const raw = localStorage.getItem('slimventory_profile');
+                if (!raw) return;
+                applyProfile(JSON.parse(raw));
+            } catch (err) {
+                console.warn('讀取本機個人設定失敗', err);
+            }
+        }
+
+        async function loadProfileFromGoogleSheet() {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_')) return;
+
+            try {
+                const url = `${GOOGLE_SCRIPT_URL}?action=profile&_=${Date.now()}`;
+                const response = await fetch(url, { cache: 'no-store' });
+                const result = await response.json();
+                if (!result || !result.ok || !result.profile) return;
+
+                applyProfile(result.profile);
+                saveProfileSettingsLocal(result.profile);
+                updateDashboard();
+            } catch (err) {
+                console.warn('從 Google Sheet 讀取身體設定失敗', err);
+            }
+        }
+
         function calculateGoals() {
             const h = parseFloat(document.getElementById('set-height').value);
             const w = parseFloat(document.getElementById('set-weight').value);
@@ -1326,13 +1395,26 @@
             targets.protein = Math.round(w * 1.8);
             targets.carbs = Math.round((targetCalories * 0.45) / 4);
 
+            const profile = getCurrentProfile();
+            saveProfileSettingsLocal(profile);
             updateDashboard();
             closeModal('profile-modal');
-            alert(`🔥 減脂目標更新成功！\n目標熱量：${targetCalories} kcal\n蛋白質目標：${targets.protein}g\n碳水目標：${targets.carbs}g`);
+
+            saveProfileSettingsToGoogle(profile).then(result => {
+                if (result && result.ok) {
+                    alert(`🔥 減脂目標更新成功！\n已記錄到 Google Sheet\n身高：${profile.height} cm\n體重：${profile.weight} kg\n目標熱量：${targetCalories} kcal\n蛋白質目標：${targets.protein}g\n碳水目標：${targets.carbs}g`);
+                } else if (result && !result.skipped) {
+                    alert(`目標已更新，但 Google Sheet 同步失敗。`);
+                } else {
+                    alert(`🔥 減脂目標更新成功！\n目標熱量：${targetCalories} kcal\n蛋白質目標：${targets.protein}g\n碳水目標：${targets.carbs}g`);
+                }
+            });
         }
 
+        loadProfileSettings();
         renderWeekStrip();
         updateDashboard();
+        loadProfileFromGoogleSheet();
         loadRecordsForSelectedDate();
     </script>
 </body>
