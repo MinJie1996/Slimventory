@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slimventory</title>
+    <style>
+        @import url("https://fonts.googleapis.com/css2?family=ADLaM+Display&display=swap");
+        :root {
+            --bg-color: #F7F2FC;
+            --card-bg: #FFFFFF;
+            --primary: #B79AE6;
+            --primary-light: #D8C2F6;
+            --secondary: #BBA8E8;
+            --text-main: #52486B;
+            --text-sub: #9C94B5;
+            --border-radius: 24px;
+            --shadow: 0 10px 30px rgba(126, 103, 176, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "ADLaM Display", "Microsoft JhengHei", "PingFang TC", sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* 頂部標題與日期週曆 */
+        header {
+            padding: 20px 20px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area h1 {
+            font-size: 1.9rem;
+            color: var(--text-main);
+            font-weight: 800;
+            letter-spacing: -0.4px;
+        }
+
+        .logo-area p {
+            display: none;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .streak-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-main);
+            background: transparent;
+        }
+
+        .streak-badge .flame {
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .settings-mini-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            background: #F3ECFB;
+            color: #9C94B5;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .week-strip-wrap {
+            padding: 2px 14px 12px;
+        }
+
+        .week-strip {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            align-items: start;
+        }
+
+        .week-day-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 4px;
+            min-height: 66px;
+            cursor: pointer;
+            user-select: none;
+            background: transparent;
+            border: none;
+            outline: none;
+            box-shadow: none;
+            padding: 0;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .week-day-label {
+            font-size: 0.75rem;
+            color: #8F87A8;
+            letter-spacing: 1px;
+        }
+
+        .week-date-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--text-main);
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .week-day-item.selected .week-date-circle {
+            background: #CDB7F6;
+            color: #fff;
+            box-shadow: 0 8px 16px rgba(232, 176, 157, 0.28);
+        }
+
+        .week-day-item.today:not(.selected) .week-date-circle {
+            background: #EEE5FB;
+            color: #9D7EE1;
+        }
+
+        .week-day-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: transparent;
+        }
+
+        .week-day-item.selected .week-day-dot,
+        .week-day-item.today .week-day-dot {
+            background: #CDB7F6;
+        }
+
+        .data-loading {
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .sync-note {
+            min-height: 18px;
+            padding: 0 20px 4px;
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--text-sub);
+        }
+
+        /* 儀表板區域：仿照參考圖的熱量環＋橫向三大營養素 */
+        .dashboard {
+            padding: 10px 24px 20px;
+        }
+
+        .hero-card {
+            background-color: #FFFFFF;
+            border-radius: 28px;
+            padding: 28px 18px 24px;
+            box-shadow: 0 12px 32px rgba(115, 94, 163, 0.10);
+            border: 1px solid #EEE7F8;
+        }
+
+        .calorie-main-row {
+            display: grid;
+            grid-template-columns: 1fr 1.55fr 1fr;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 28px;
+            min-height: 150px;
+        }
+
+        .stat-col,
+        .center-stat {
+            min-width: 0;
+        }
+
+        .stat-col .number {
+            font-size: 2rem;
+            line-height: 1;
+            font-weight: 800;
+            color: #4E4468;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-col .label {
+            font-size: 1rem;
+            color: #9C94B5;
+            margin-top: 10px;
+            font-weight: 700;
+        }
+
+        .center-stat {
+            position: relative;
+            height: 170px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .calorie-gauge {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 190px;
+            height: 110px;
+            pointer-events: none;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: #EFE6FB;
+            stroke-width: 16;
+            stroke-linecap: round;
+        }
+
+        .gauge-progress {
+            fill: none;
+            stroke: url(#calorieGaugeGradient);
+            stroke-width: 16;
+            stroke-linecap: round;
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            transition: stroke-dashoffset 0.4s ease;
+        }
+
+        .center-stat .number {
+            font-size: 3.1rem;
+            line-height: 1;
+            font-weight: 850;
+            letter-spacing: -1.5px;
+            color: #4E4468;
+            margin-top: 26px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .center-stat .label {
+            font-size: 1rem;
+            color: #9C94B5;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            font-weight: 700;
+        }
+
+        /* 營養素：改成參考圖的橫向排列 */
+        .macros-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .macro-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .macro-header-info {
+            display: block;
+            text-align: center;
+        }
+
+        .macro-name {
+            display: block;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #52486B;
+            margin-bottom: 12px;
+        }
+
+        .macro-value {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            color: #A39ABB;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .macro-value strong {
+            color: #4E4468;
+            font-size: 1.25rem;
+            font-weight: 850;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 18px;
+            background-color: #F1ECF8;
+            border-radius: 999px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.01);
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+            position: relative;
+        }
+
+        .progress-bar-fill::before {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.55);
+        }
+
+        #protein-bar {
+            background: linear-gradient(90deg, #D8C2F6 0%, #B79AE6 100%) !important;
+        }
+
+        #carbs-bar {
+            background: linear-gradient(90deg, #E8D8FB 0%, #C7A9F2 100%) !important;
+        }
+
+
+        @media (max-width: 380px) {
+            .hero-card { padding-left: 14px; padding-right: 14px; }
+            .calorie-main-row { grid-template-columns: 0.9fr 1.5fr 0.9fr; }
+            .stat-col .number { font-size: 1.7rem; }
+            .center-stat .number { font-size: 2.7rem; }
+            .macros-container { gap: 10px; }
+            .macro-name { font-size: 0.92rem; }
+            .macro-value { font-size: 0.8rem; }
+            .macro-value strong { font-size: 1.05rem; }
+        }
+
+        /* 餐別選擇網格 */
+        .meal-section {
+            padding: 10px 24px 24px;
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title span {
+            font-size: 0.75rem;
+            color: var(--primary);
+            background: #F3ECFB;
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+
+        .meal-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .meal-card {
+            background-color: #FBF8FE;
+            border: 2px solid transparent;
+            border-radius: 18px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .meal-card:hover {
+            background-color: #F3ECFB;
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .meal-icon {
+            font-size: 1.4rem;
+        }
+
+        .meal-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .meal-status {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+
+        /* 已存紀錄 / 編輯 */
+        .saved-records {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .saved-empty {
+            padding: 24px 12px;
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        .saved-record-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 13px 14px;
+            border-radius: 16px;
+            background: #FBF8FE;
+            border: 1px solid #E9E0F5;
+        }
+
+        .saved-record-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .saved-record-name {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .saved-record-meta {
+            margin-top: 4px;
+            font-size: 0.76rem;
+            color: var(--text-sub);
+        }
+
+        .edit-record-btn {
+            flex: 0 0 auto;
+            border: none;
+            border-radius: 12px;
+            padding: 8px 11px;
+            background: #EEE5FB;
+            color: #8B6CC8;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .saved-record-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+
+        .delete-record-btn {
+            flex: 0 0 auto;
+            border: none;
+            border-radius: 12px;
+            padding: 8px 11px;
+            background: #F7EAF0;
+            color: #B86B85;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .delete-record-btn:hover {
+            background: #F2DCE5;
+        }
+
+        .editing-hint {
+            display: none;
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #F1E9FB;
+            color: #8065B9;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .editing-hint.active { display: block; }
+
+        /* 彈窗畫面 (Modal) */
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(43, 45, 66, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            width: 100%;
+            max-height: 85vh;
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            padding: 24px;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.1, 1, 0.1, 1);
+            overflow-y: auto;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
+
+        /* 輸入分頁按鈕 */
+        .input-tabs {
+            display: flex;
+            background: #F2EEF8;
+            padding: 4px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* 表單與上傳元件 */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #E7DFF4;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #FBF8FE;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .primary-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(224, 122, 95, 0.25);
+            transition: opacity 0.2s;
+            margin-top: 10px;
+        }
+
+        .primary-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* AI 掃描動畫 */
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(224, 122, 95, 0.4); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(224, 122, 95, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(224, 122, 95, 0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- 頂部 -->
+        <header>
+            <div class="logo-area">
+                <h1>Slimventory</h1>
+                <p>MinJie</p>
+            </div>
+            <div class="header-actions">
+                <div class="streak-badge"><span class="flame">🔥</span><span id="streak-count">0</span></div>
+                <button class="settings-mini-btn" onclick="openProfileModal()" aria-label="個人設定">⚙</button>
+            </div>
+        </header>
+
+        <div class="week-strip-wrap">
+            <div class="week-strip" id="week-strip"></div>
+        </div>
+        <div class="sync-note" id="sync-note"></div>
+
+        <!-- 儀表板 (完美對齊設計圖) -->
+        <div class="dashboard">
+            <div class="hero-card">
+                <div class="calorie-main-row">
+                    <div class="stat-col">
+                        <div class="number" id="eaten-cal">0</div>
+                        <div class="label">攝取</div>
+                    </div>
+                    <div class="center-stat">
+                        <svg class="calorie-gauge" viewBox="0 0 200 120" aria-hidden="true">
+                            <defs>
+                                <linearGradient id="calorieGaugeGradient" x1="20" y1="100" x2="180" y2="100" gradientUnits="userSpaceOnUse">
+                                    <stop offset="0%" stop-color="#DCCBFA"></stop>
+                                    <stop offset="55%" stop-color="#C8ADF3"></stop>
+                                    <stop offset="100%" stop-color="#AF8FE8"></stop>
+                                </linearGradient>
+                            </defs>
+                            <path class="gauge-bg" d="M20 100 A80 80 0 0 1 180 100"></path>
+                            <path class="gauge-progress" id="calorie-gauge-progress" d="M20 100 A80 80 0 0 1 180 100"></path>
+                        </svg>
+                        <div class="number" id="remaining-cal">1477</div>
+                        <div class="label">剩餘 ⓘ</div>
+                    </div>
+                    <div class="stat-col">
+                        <div class="number" id="burned-cal">0</div>
+                        <div class="label">燃燒</div>
+                    </div>
+                </div>
+
+                <!-- 營養素進度條 -->
+                <div class="macros-container">
+                    <!-- 蛋白質 -->
+                    <div class="macro-row">
+                        <div class="macro-header-info">
+                            <span class="macro-name">蛋白質</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="protein-bar"></div>
+                        </div>
+                        <span class="macro-value" id="protein-text"><strong>0</strong> / 111 g</span>
+                    </div>
+                    <!-- 碳水 -->
+                    <div class="macro-row">
+                        <div class="macro-header-info">
+                            <span class="macro-name">碳水</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="carbs-bar"></div>
+                        </div>
+                        <span class="macro-value" id="carbs-text"><strong>0</strong> / 147 g</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 餐別選單 -->
+        <div class="meal-section">
+            <div class="section-title">
+                選擇紀錄餐別
+                <span>🔥 減脂模式</span>
+            </div>
+            <div class="meal-grid">
+                <div class="meal-card" onclick="openMealModal('早餐', '🍳')">
+                    <span class="meal-icon">🍳</span>
+                    <span class="meal-name">早餐</span>
+                    <span class="meal-status" id="status-早餐">尚未記錄</span>
+                </div>
+                <div class="meal-card" onclick="openMealModal('午餐', '🍱')">
+                    <span class="meal-icon">🍱</span>
+                    <span class="meal-name">午餐</span>
+                    <span class="meal-status" id="status-午餐">尚未記錄</span>
+                </div>
+                <div class="meal-card" onclick="openMealModal('點心', '🍰')">
+                    <span class="meal-icon">🍰</span>
+                    <span class="meal-name">點心</span>
+                    <span class="meal-status" id="status-點心">尚未記錄</span>
+                </div>
+                <div class="meal-card" onclick="openMealModal('晚餐', '🍲')">
+                    <span class="meal-icon">🍲</span>
+                    <span class="meal-name">晚餐</span>
+                    <span class="meal-status" id="status-晚餐">尚未記錄</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 餐點輸入彈窗 -->
+    <div class="modal" id="meal-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">記錄餐點</h3>
+                <button class="close-btn" onclick="closeModal('meal-modal')">✕</button>
+            </div>
+            
+            <div class="input-tabs">
+                <button class="tab-btn active" onclick="switchTab('manual')">✍️ 自行輸入</button>
+                <button class="tab-btn" onclick="switchTab('records')">📋 已存紀錄</button>
+            </div>
+
+            <!-- 已存紀錄頁籤 -->
+            <div class="tab-pane" id="pane-records">
+                <div class="saved-records" id="saved-records-list"></div>
+            </div>
+
+            <!-- 手動輸入頁籤 -->
+            <div class="tab-pane active" id="pane-manual">
+                <div class="editing-hint" id="editing-hint">✏️ 正在修改已存紀錄</div>
+                <div class="form-group">
+                    <label>食物名稱</label>
+                    <input type="text" id="food-name" class="form-control" placeholder="例如：水煮雞胸肉沙拉">
+                </div>
+                <div class="form-group">
+                    <label>熱量 (Kcal)</label>
+                    <input type="number" id="food-cal" class="form-control" placeholder="例如：350">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="form-group" style="flex:1;">
+                        <label>蛋白質 (g)</label>
+                        <input type="number" id="food-protein" class="form-control" placeholder="30">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>碳水 (g)</label>
+                        <input type="number" id="food-carbs" class="form-control" placeholder="20">
+                    </div>
+                </div>
+                <button class="primary-btn" id="manual-save-btn" onclick="saveMealManual()">確認新增紀錄</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 個人設定彈窗 -->
+    <div class="modal" id="profile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>個人身體數據設定 (減脂模式)</h3>
+                <button class="close-btn" onclick="closeModal('profile-modal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>身高 (cm)</label>
+                <input type="number" id="set-height" class="form-control" value="165">
+            </div>
+            <div class="form-group">
+                <label>體重 (kg)</label>
+                <input type="number" id="set-weight" class="form-control" value="60">
+            </div>
+            <div class="form-group">
+                <label>每週運動習慣 (重訓、跑步等)</label>
+                <select id="set-exercise" class="form-control">
+                    <option value="1.2">幾乎不運動 (久坐)</option>
+                    <option value="1.375">輕度運動 (每週 1-3 天)</option>
+                    <option value="1.55" selected>中度運動 (每週 3-5 天，例如重訓/跑步)</option>
+                    <option value="1.725">高度運動 (每週 6-7 天)</option>
+                </select>
+            </div>
+            <button class="primary-btn" onclick="calculateGoals()">計算減脂目標</button>
+        </div>
+    </div>
+
+    <script>
+        // Google Apps Script Web App URL
+        // 部署 Apps Script 後，把網址貼到這裡
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzv_n0OHVnREr8KwoEjQdI4ViJHsOO2dKFaNfrRTrzo6f1b4B_vFPES9PtJm-nxoI3k/exec';
+
+        let currentMealType = '';
+        let targetCalories = 1477;
+        let targets = { protein: 111, carbs: 147 };
+        let totals = { eaten: 0, burned: 0, protein: 0, carbs: 0 };
+        let mealRecords = { 早餐: [], 午餐: [], 點心: [], 晚餐: [] };
+        let selectedDate = new Date();
+        let loadRequestId = 0;
+        let editingRowId = null;
+        let editingCreatedAt = null;
+        const pendingWrites = new Set();
+
+        function trackPendingWrite(promise) {
+            pendingWrites.add(promise);
+            promise.finally(() => pendingWrites.delete(promise));
+            return promise;
+        }
+
+        async function waitForPendingWrites() {
+            if (!pendingWrites.size) return;
+            await Promise.allSettled(Array.from(pendingWrites));
+        }
+
+        function normalizeDate(date) {
+            return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        }
+
+        function isSameDate(a, b) {
+            return a.getFullYear() === b.getFullYear() &&
+                   a.getMonth() === b.getMonth() &&
+                   a.getDate() === b.getDate();
+        }
+
+        function formatDateForSheet(date) {
+            return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function resetMealRecords() {
+            mealRecords = { 早餐: [], 午餐: [], 點心: [], 晚餐: [] };
+            ['早餐', '午餐', '點心', '晚餐'].forEach(meal => {
+                const el = document.getElementById(`status-${meal}`);
+                if (el) {
+                    el.innerText = '尚未記錄';
+                    el.style.color = 'var(--text-sub)';
+                }
+            });
+            totals.burned = 0;
+            updateDashboard();
+        }
+
+        function refreshMealStatuses() {
+            ['早餐', '午餐', '點心', '晚餐'].forEach(meal => {
+                const records = mealRecords[meal] || [];
+                const el = document.getElementById(`status-${meal}`);
+                if (!el) return;
+                if (!records.length) {
+                    el.innerText = '尚未記錄';
+                    el.style.color = 'var(--text-sub)';
+                    return;
+                }
+                const mealTotal = records.reduce((sum, item) => sum + (Number(item.cal) || 0), 0);
+                el.innerText = `${records.length} 筆紀錄 · ${formatNumber(mealTotal)} kcal`;
+                el.style.color = 'var(--primary)';
+            });
+        }
+
+        async function loadRecordsForSelectedDate() {
+            const note = document.getElementById('sync-note');
+            const dashboard = document.querySelector('.dashboard');
+            const mealSection = document.querySelector('.meal-section');
+            const thisRequest = ++loadRequestId;
+            const requestedDate = new Date(selectedDate);
+            const dateText = formatDateForSheet(requestedDate);
+
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_')) {
+                resetMealRecords();
+                if (note) note.innerText = '尚未設定 Google Sheet 連線';
+                return;
+            }
+
+            if (note) note.innerText = pendingWrites.size ? '正在完成上一筆同步…' : '正在讀取紀錄…';
+            dashboard?.classList.add('data-loading');
+            mealSection?.classList.add('data-loading');
+
+            try {
+                // 若剛新增完就切日期，先等 Google Sheet 寫入完成，再讀取。
+                // 否則可能發生 GET 比 POST 更早回來，畫面就會誤顯示 0 筆。
+                await waitForPendingWrites();
+                if (thisRequest !== loadRequestId) return;
+
+                if (note) note.innerText = '正在讀取紀錄…';
+                resetMealRecords();
+
+                const url = `${GOOGLE_SCRIPT_URL}?action=records&date=${encodeURIComponent(dateText)}&_=${Date.now()}`;
+                const response = await fetch(url, { method: 'GET', cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const result = await response.json();
+
+                if (thisRequest !== loadRequestId) return;
+                if (!result || !result.ok) throw new Error(result?.error || '讀取失敗');
+
+                resetMealRecords();
+                (result.records || []).forEach(row => {
+                    const meal = row.mealType;
+                    if (!mealRecords[meal]) return;
+                    mealRecords[meal].push({
+                        rowId: Number(row.rowId) || null,
+                        createdAt: row.createdAt || '',
+                        name: row.foodName || '餐點',
+                        cal: Number(row.calories) || 0,
+                        protein: Number(row.protein) || 0,
+                        carbs: Number(row.carbs) || 0
+                    });
+                });
+
+                refreshMealStatuses();
+                updateDashboard();
+
+                // 如果餐點視窗目前開著，重新繪製「已存紀錄」，
+                // 避免修改/刪除後畫面還停留在舊資料。
+                const mealModal = document.getElementById('meal-modal');
+                if (mealModal?.classList.contains('active')) {
+                    renderSavedRecords();
+                }
+
+                if (note) note.innerText = result.records?.length ? `已同步 ${result.records.length} 筆` : '這天還沒有紀錄';
+            } catch (error) {
+                console.error('讀取 Google Sheet 失敗：', error);
+                if (thisRequest === loadRequestId && note) note.innerText = '讀取失敗，請確認 Apps Script 已更新部署';
+            } finally {
+                if (thisRequest === loadRequestId) {
+                    dashboard?.classList.remove('data-loading');
+                    mealSection?.classList.remove('data-loading');
+                }
+            }
+        }
+
+        function renderWeekStrip() {
+            const strip = document.getElementById('week-strip');
+            const weekLabels = ['一','二','三','四','五','六','日'];
+            const today = normalizeDate(new Date());
+            const selected = normalizeDate(selectedDate);
+
+            const jsDay = selected.getDay();
+            const mondayOffset = jsDay === 0 ? -6 : 1 - jsDay;
+            const monday = new Date(selected);
+            monday.setDate(selected.getDate() + mondayOffset);
+
+            strip.innerHTML = '';
+
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + i);
+                const isSelected = isSameDate(dayDate, selected);
+                const isToday = isSameDate(dayDate, today);
+
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = `week-day-item${isSelected ? ' selected' : ''}${isToday ? ' today' : ''}`;
+                item.setAttribute('aria-label', `${dayDate.getMonth() + 1}月${dayDate.getDate()}日`);
+                item.innerHTML = `
+                    <span class="week-day-label">${weekLabels[i]}</span>
+                    <span class="week-date-circle">${dayDate.getDate()}</span>
+                    <span class="week-day-dot"></span>
+                `;
+                item.addEventListener('click', () => {
+                    selectedDate = new Date(dayDate);
+                    renderWeekStrip();
+                    loadRecordsForSelectedDate();
+                });
+                strip.appendChild(item);
+            }
+        }
+
+        function changeDate(days) {
+            selectedDate.setDate(selectedDate.getDate() + days);
+            renderWeekStrip();
+            loadRecordsForSelectedDate();
+        }
+
+        function openMealModal(mealName, icon) {
+            currentMealType = mealName;
+            cancelEditing();
+            document.getElementById('modal-title').innerText = `${icon} 記錄${mealName}`;
+            document.getElementById('meal-modal').classList.add('active');
+            renderSavedRecords();
+            switchTab((mealRecords[mealName] || []).length ? 'records' : 'manual');
+        }
+
+        function openProfileModal() {
+            document.getElementById('profile-modal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function switchTab(type) {
+            const panes = {
+                manual: document.getElementById('pane-manual'),
+                records: document.getElementById('pane-records')
+            };
+            const btns = document.querySelectorAll('.input-tabs .tab-btn');
+
+            Object.values(panes).forEach(pane => { if (pane) pane.style.display = 'none'; });
+            btns.forEach(btn => btn.classList.remove('active'));
+
+            if (panes[type]) panes[type].style.display = 'block';
+            const index = type === 'manual' ? 0 : 1;
+            if (btns[index]) btns[index].classList.add('active');
+
+            if (type === 'records') renderSavedRecords();
+        }
+
+        function renderSavedRecords() {
+            const list = document.getElementById('saved-records-list');
+            if (!list) return;
+            const records = mealRecords[currentMealType] || [];
+
+            if (!records.length) {
+                list.innerHTML = '<div class="saved-empty">這餐目前沒有已存紀錄</div>';
+                return;
+            }
+
+            list.innerHTML = records.map((item, index) => `
+                <div class="saved-record-card">
+                    <div class="saved-record-info">
+                        <div class="saved-record-name">${escapeHtml(item.name || '餐點')}</div>
+                        <div class="saved-record-meta">${formatNumber(item.cal)} kcal · 蛋白質 ${formatNumber(item.protein)}g · 碳水 ${formatNumber(item.carbs)}g</div>
+                    </div>
+                    <div class="saved-record-actions">
+                        <button class="edit-record-btn" type="button" onclick="startEditRecord(${index})">修改</button>
+                        <button class="delete-record-btn" type="button" onclick="deleteSavedRecord(${index})">刪除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function deleteSavedRecord(index) {
+            const item = (mealRecords[currentMealType] || [])[index];
+            if (!item || !item.rowId) {
+                alert('這筆紀錄還沒有取得 Google Sheet 列號，請先重新載入這一天再刪除。');
+                return;
+            }
+
+            const confirmed = confirm(`確定要刪除「${item.name || '這筆紀錄'}」嗎？
+刪除後會同步從 Google Sheet 移除。`);
+            if (!confirmed) return;
+
+            const note = document.getElementById('sync-note');
+            if (note) note.innerText = '正在刪除紀錄…';
+
+            const record = {
+                action: 'delete',
+                rowId: item.rowId
+            };
+
+            const result = await trackPendingWrite(saveRecordToGoogleSheet(record));
+            if (result && result.ok) {
+                // 先即時更新本機畫面，讓刪除後不會停在舊資料。
+                // 接著再從 Google Sheet 重新載入，確保 rowId 與資料完全同步。
+                const records = mealRecords[currentMealType] || [];
+                records.splice(index, 1);
+                cancelEditing();
+                refreshMealStatuses();
+                updateDashboard();
+                renderSavedRecords();
+
+                if (note) note.innerText = '已從 Google Sheet 刪除';
+                await loadRecordsForSelectedDate();
+                renderSavedRecords();
+            } else {
+                if (note) note.innerText = '刪除失敗，請稍後再試';
+                alert(`刪除失敗${result?.error ? `：${result.error}` : ''}`);
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function startEditRecord(index) {
+            const item = (mealRecords[currentMealType] || [])[index];
+            if (!item || !item.rowId) {
+                alert('這筆紀錄還沒有取得 Google Sheet 列號，請先重新載入這一天再修改。');
+                return;
+            }
+
+            editingRowId = item.rowId;
+            editingCreatedAt = item.createdAt || '';
+            document.getElementById('food-name').value = item.name || '';
+            document.getElementById('food-cal').value = item.cal || '';
+            document.getElementById('food-protein').value = item.protein || '';
+            document.getElementById('food-carbs').value = item.carbs || '';
+            document.getElementById('manual-save-btn').innerText = '儲存修改';
+            document.getElementById('editing-hint').classList.add('active');
+            switchTab('manual');
+        }
+
+        function cancelEditing() {
+            editingRowId = null;
+            editingCreatedAt = null;
+            const btn = document.getElementById('manual-save-btn');
+            const hint = document.getElementById('editing-hint');
+            if (btn) btn.innerText = '確認新增紀錄';
+            if (hint) hint.classList.remove('active');
+            ['food-name','food-cal','food-protein','food-carbs'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+        }
+
+        async function saveRecordToGoogleSheet(record) {
+            if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_')) {
+                console.warn('尚未設定 Google Apps Script URL，資料只會保留在目前頁面。');
+                return { ok: false, skipped: true };
+            }
+
+            try {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(record)
+                });
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('寫入 Google Sheet 失敗：', error);
+                return { ok: false, error: String(error) };
+            }
+        }
+
+        function saveMealManual() {
+            const name = document.getElementById('food-name').value.trim() || '自訂健康餐點';
+            const cal = Number(document.getElementById('food-cal').value) || 0;
+            const protein = Number(document.getElementById('food-protein').value) || 0;
+            const carbs = Number(document.getElementById('food-carbs').value) || 0;
+
+            if (cal <= 0 && protein <= 0 && carbs <= 0) {
+                alert('請至少輸入熱量、蛋白質或碳水其中一項喔！');
+                return;
+            }
+
+            const isEditing = !!editingRowId;
+            const record = {
+                action: isEditing ? 'update' : 'create',
+                rowId: editingRowId,
+                date: formatDateForSheet(selectedDate),
+                mealType: currentMealType,
+                foodName: name,
+                calories: cal,
+                protein: protein,
+                carbs: carbs,
+                createdAt: isEditing ? editingCreatedAt : new Date().toISOString()
+            };
+
+            if (!isEditing) {
+                addMealData({ name, cal, protein, carbs });
+            }
+
+            const savePromise = trackPendingWrite(saveRecordToGoogleSheet(record));
+            savePromise.then(async result => {
+                const note = document.getElementById('sync-note');
+                if (result && result.ok) {
+                    if (note) note.innerText = isEditing ? '修改已同步到 Google Sheet' : '已同步到 Google Sheet';
+                    cancelEditing();
+                    await loadRecordsForSelectedDate();
+                } else if (result && !result.skipped) {
+                    if (note) note.innerText = isEditing ? '修改失敗，請稍後再試' : '寫入失敗，請稍後再試';
+                }
+            });
+
+            closeModal('meal-modal');
+            if (!isEditing) cancelEditing();
+        }
+
+        function addMealData(data) {
+            // 同一餐可新增多筆，不覆蓋前一筆資料
+            if (!currentMealType || !mealRecords[currentMealType]) {
+                alert('請先選擇要記錄的餐別');
+                return;
+            }
+
+            mealRecords[currentMealType].push({
+                name: data.name || '自訂健康餐點',
+                cal: Number(data.cal) || 0,
+                protein: Number(data.protein) || 0,
+                carbs: Number(data.carbs) || 0
+            });
+
+            const mealTotal = mealRecords[currentMealType].reduce((sum, item) => sum + item.cal, 0);
+            const itemCount = mealRecords[currentMealType].length;
+            document.getElementById(`status-${currentMealType}`).innerText = `${itemCount} 筆紀錄 · ${Math.round(mealTotal)} kcal`;
+            document.getElementById(`status-${currentMealType}`).style.color = 'var(--primary)';
+
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            // 每次都由 mealRecords 重新計算，避免畫面與累加狀態不同步
+            let eaten = 0;
+            let protein = 0;
+            let carbs = 0;
+
+            Object.values(mealRecords).forEach(records => {
+                records.forEach(item => {
+                    eaten += Number(item.cal) || 0;
+                    protein += Number(item.protein) || 0;
+                    carbs += Number(item.carbs) || 0;
+                });
+            });
+
+            totals.eaten = eaten;
+            totals.protein = protein;
+            totals.carbs = carbs;
+
+            document.getElementById('eaten-cal').innerText = formatNumber(totals.eaten);
+            document.getElementById('burned-cal').innerText = formatNumber(totals.burned);
+
+            const remaining = targetCalories - totals.eaten + totals.burned;
+            document.getElementById('remaining-cal').innerText = formatNumber(remaining);
+
+            // 更新上方半圓熱量進度（0% = 左側起點，100% = 右側終點）
+            const consumedRatio = Math.max(0, Math.min(1, totals.eaten / targetCalories));
+            const gaugeLength = 251.2;
+            const gaugeOffset = gaugeLength * (1 - consumedRatio);
+            document.getElementById('calorie-gauge-progress').style.strokeDashoffset = `${gaugeOffset}`;
+
+            // 更新營養素數值與進度條
+            updateMacroProgress('protein', totals.protein, targets.protein);
+            updateMacroProgress('carbs', totals.carbs, targets.carbs);
+        }
+
+        function formatNumber(value) {
+            const n = Number(value) || 0;
+            return Number.isInteger(n) ? n : Number(n.toFixed(1));
+        }
+
+        function updateMacroProgress(type, current, target) {
+            const displayCurrent = formatNumber(current);
+            document.getElementById(`${type}-text`).innerHTML = `<strong>${displayCurrent}</strong> / ${target} g`;
+            const percentage = Math.min(100, Math.round((current / target) * 100));
+            document.getElementById(`${type}-bar`).style.width = `${percentage}%`;
+        }
+
+        function calculateGoals() {
+            const h = parseFloat(document.getElementById('set-height').value);
+            const w = parseFloat(document.getElementById('set-weight').value);
+            const activity = parseFloat(document.getElementById('set-exercise').value);
+
+            let bmr = (10 * w) + (6.25 * h) - (5 * 25) - 161; 
+            let tdee = bmr * activity;
+            
+            targetCalories = Math.max(1200, Math.round(tdee - 400));
+            targets.protein = Math.round(w * 1.8);
+            targets.carbs = Math.round((targetCalories * 0.45) / 4);
+
+            updateDashboard();
+            closeModal('profile-modal');
+            alert(`🔥 減脂目標更新成功！\n目標熱量：${targetCalories} kcal\n蛋白質目標：${targets.protein}g\n碳水目標：${targets.carbs}g`);
+        }
+
+        renderWeekStrip();
+        updateDashboard();
+        loadRecordsForSelectedDate();
+    </script>
+</body>
+</html>
