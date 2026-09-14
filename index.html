@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Slimventory - 減脂紀錄</title>
+    <title>Slimventory - 溫馨減脂紀錄</title>
     <style>
         @import url("https://fonts.googleapis.com/css2?family=ADLaM+Display&display=swap");
         :root {
@@ -198,7 +198,7 @@
 
         .calorie-main-row {
             display: grid;
-            grid-template-columns: 1fr 1.55fr 1fr;
+            grid-template-columns: 0.85fr 1.75fr;
             align-items: center;
             text-align: center;
             margin-bottom: 28px;
@@ -365,11 +365,20 @@
         }
 
 
-        @media (max-width: 380px) {
-            .hero-card { padding-left: 14px; padding-right: 14px; }
-            .calorie-main-row { grid-template-columns: 0.9fr 1.5fr 0.9fr; }
-            .stat-col .number { font-size: 1.7rem; }
-            .center-stat .number { font-size: 2.7rem; }
+        @media (max-width: 430px) {
+            .hero-card { padding: 24px 14px 22px; }
+            .calorie-main-row {
+                grid-template-columns: 0.78fr 1.52fr;
+                column-gap: 8px;
+                min-height: 145px;
+                margin-bottom: 24px;
+            }
+            .stat-col .number { font-size: 1.55rem; }
+            .stat-col .label { font-size: 0.9rem; margin-top: 8px; }
+            .center-stat { height: 150px; }
+            .calorie-gauge { width: 158px; height: 96px; top: 2px; }
+            .center-stat .number { font-size: 2.55rem; margin-top: 22px; }
+            .center-stat .label { font-size: 0.9rem; margin-top: 8px; }
             .macros-container { gap: 10px; }
             .macro-name { font-size: 0.92rem; }
             .macro-value { font-size: 0.8rem; }
@@ -688,7 +697,7 @@
         <header>
             <div class="logo-area">
                 <h1>Slimventory</h1>
-                <p>減脂加油</p>
+                <p>輕鬆記錄，溫馨減脂</p>
             </div>
             <div class="header-actions">
                 <div class="streak-badge"><span class="flame">🔥</span><span id="streak-count">0</span></div>
@@ -701,7 +710,7 @@
         </div>
         <div class="sync-note" id="sync-note"></div>
 
-        <!-- 儀表板 (完美對齊設計圖) -->
+        <!-- 熱量儀表板 -->
         <div class="dashboard">
             <div class="hero-card">
                 <div class="calorie-main-row">
@@ -723,10 +732,6 @@
                         </svg>
                         <div class="number" id="remaining-cal">1477</div>
                         <div class="label">剩餘 ⓘ</div>
-                    </div>
-                    <div class="stat-col">
-                        <div class="number" id="burned-cal">0</div>
-                        <div class="label">燃燒</div>
                     </div>
                 </div>
 
@@ -867,7 +872,7 @@
         let currentMealType = '';
         let targetCalories = 1477;
         let targets = { protein: 111, carbs: 147 };
-        let totals = { eaten: 0, burned: 0, protein: 0, carbs: 0 };
+        let totals = { eaten: 0, protein: 0, carbs: 0 };
         let mealRecords = { 早餐: [], 午餐: [], 點心: [], 晚餐: [] };
         let selectedDate = new Date();
         let loadRequestId = 0;
@@ -1286,9 +1291,7 @@
             totals.carbs = carbs;
 
             document.getElementById('eaten-cal').innerText = formatNumber(totals.eaten);
-            document.getElementById('burned-cal').innerText = formatNumber(totals.burned);
-
-            const remaining = targetCalories - totals.eaten + totals.burned;
+            const remaining = targetCalories - totals.eaten;
             document.getElementById('remaining-cal').innerText = formatNumber(remaining);
 
             // 更新上方半圓熱量進度（0% = 左側起點，100% = 右側終點）
